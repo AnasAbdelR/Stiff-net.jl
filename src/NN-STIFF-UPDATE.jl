@@ -3,6 +3,8 @@ using Zygote
 using DifferentialEquations
 using ForwardDiff
 using LinearAlgebra
+using BSON: @save
+using BSON: @load
 LinearAlgebra.BLAS.set_num_threads(16)
 
 
@@ -61,7 +63,7 @@ end
 
 function dθ_dt!(du,u,k,t)
     #ODE used to evolve parmaeters based on the negative gradient definition (evolving in the direction of steepest descent)
-    @show du .= -1 .* grab_∇(u)
+    du .= -1 .* grab_∇(u)
 end
 
 #################################################################################################################################################################################
@@ -80,6 +82,8 @@ dudt2 = Chain(Dense(3,3, tanh),
              Dense(3, 3, tanh),
              Dense(3,3))
 
+@load "stiff-net.bson" dudt2
+
 p,re = Flux.destructure(dudt2) # use this p as the initial condition!
 dudt(u,p,t) = re(p)(u) # need to restrcture for backprop!
 prob = ODEProblem(dudt,u0,tspan)
@@ -89,12 +93,24 @@ predict_n_ode(p)
 #Test loss functions, check for good initialisation (loss must be <100)
 loss_n_ode()
 loss_n_ode(p)
+#Save well behaved initialisation
+#@save "stiff-net.bson" dudt2
 
 #Train with solver
 tspan_θ = (0.0,0.125)
 prob_θ = ODEProblem(dθ_dt!,p,tspan_θ)
-sol_θ = solve(prob_θ,Rosenbrock23(autodiff=false), abstol = 1e-10, reltol = 1e-10)
-param_his = Array(sol)
+integrator = init(prob_θ,Rosenbrock23(autodiff=false))
+loss_arr = []
+params_arr = []
+for (u,t) in tuples(integrator)
+    loss = loss_n_ode(u)
+    push!(loss_arr, loss)
+    push!(params_arr, u)
+    println(loss)
+end
+
+plot(loss_arr)
+
 
 
 
