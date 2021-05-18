@@ -25,20 +25,8 @@ function generate_data(u0, pz, tspan, solver)
     return data, ode_sol.t
 end
 
-
-function predict_n_ode()
-    Array(solve(prob, Rosenbrock23(), u0=u0,p=p, saveat=tsteps))
-end
-
 function predict_n_ode(k)
     Array(solve(prob, Rosenbrock23(), u0=u0,p=k, saveat=tsteps))
-end
-
-function loss_n_ode()
-    #Loss for normal nn_ode
-      pred = predict_n_ode()
-      loss = sum(abs2,ode_data .- pred)
-      return loss
 end
 
 function loss_n_ode(k)
@@ -46,14 +34,6 @@ function loss_n_ode(k)
       pred = predict_n_ode(k)
       loss = sum(abs2,ode_data .- pred)
       return loss
-end
-
-
-function cb()
-     #callback function to observe training
-     loss = loss_n_ode()
-     display(loss)
-     loss < 50 && Flux.stop()
 end
 
 function grab_∇(par)
@@ -70,7 +50,7 @@ end
 #Generate the data
 pz = [0.04,3e7,1e4]
 u0 = [1.0,0.0,0.0]
-tspan = (10.0e-5,10.0e5)
+tspan = (1.0e-5,1.0e5)
 solver = Rosenbrock23(autodiff=false,diff_type=Val{:forward})
 ode_data, tsteps = generate_data(u0, pz, tspan, solver)
 plot(tsteps, ode_data')
@@ -91,7 +71,6 @@ prob = ODEProblem(dudt,u0,tspan)
 predict_n_ode()
 predict_n_ode(p)
 #Test loss functions, check for good initialisation (loss must be <100)
-loss_n_ode()
 loss_n_ode(p)
 #Save well behaved initialisation
 #@save "stiff-net.bson" dudt2
