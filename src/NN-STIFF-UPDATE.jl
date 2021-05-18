@@ -68,7 +68,6 @@ p,re = Flux.destructure(dudt2) # use this p as the initial condition!
 dudt(u,p,t) = re(p)(u) # need to restrcture for backprop!
 prob = ODEProblem(dudt,u0,tspan)
 #Test predicion functions
-predict_n_ode()
 predict_n_ode(p)
 #Test loss functions, check for good initialisation (loss must be <100)
 loss_n_ode(p)
